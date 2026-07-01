@@ -262,7 +262,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
     <div class="logo-mark">⇄</div>
     <div>
       <div class="brand-name">ROT<em>8</em>ION <span style="font-size:.52rem;color:var(--muted);font-weight:400">v5</span></div>
-      <div class="brand-sub">DIRECT BINANCE · TOP 3 PICKS · PUMP→LAG · BTC FUNDING · SESSIONS · BYBIT CROSS · GITHUB PAGES</div>
+      <div class="brand-sub">250 COINS · RSI · WHALE CANDLES · TOP 3 PICKS · PUMP→LAG · BTC+ETH FUNDING · SESSIONS · BYBIT CROSS</div>
     </div>
   </div>
   <div class="hdr-right">
@@ -296,6 +296,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
   <div class="ri"><div class="rl">BTC EMA50</div><div class="rv" id="regEma50" style="color:#CF9FFF">—</div></div>
   <div class="rdiv"></div>
   <div class="ri"><div class="rl">BTC FUNDING</div><span class="fr-pill clean" id="frPill">—</span></div>
+  <div class="ri"><div class="rl">ETH FUNDING</div><span class="fr-pill clean" id="ethFrPill">—</span></div>
   <div class="regime-desc" id="regimeDesc">Click SCAN NOW to begin…</div>
   <div class="regime-warn" id="regimeWarn">⚠ RISK OFF — All alt signals penalised 50%. Do not trade aggressively.</div>
 </div>
@@ -325,6 +326,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
         <button class="tab" onclick="switchTab(this,'graveyard')">⚰ GRAVEYARD</button>
         <button class="tab" onclick="switchTab(this,'hitrate')">📈 HIT RATE</button>
         <button class="tab" onclick="switchTab(this,'backtest')">🔬 BACKTEST</button>
+        <button class="tab" onclick="switchTab(this,'alerts')">🔔 ALERTS</button>
       </div>
       <div class="tab-content active" id="tab-signals">
         <div class="filter-bar">
@@ -377,6 +379,13 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
         <button class="bt-run-btn" id="btRunBtn" onclick="runClientBacktest()">▶ RUN 7-DAY BACKTEST</button>
         <div id="btResults"></div>
       </div>
+      <div class="tab-content" id="tab-alerts">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 14px;background:var(--s2);border-bottom:1px solid var(--border);">
+          <span style="font-size:.52rem;color:var(--muted);letter-spacing:.12em">SESSION ALERT LOG — auto-clears on page reload</span>
+          <button class="hdr-btn" style="font-size:.48rem;padding:3px 8px" onclick="clearAlertLog()">✕ CLEAR</button>
+        </div>
+        <div id="alertLogRows"><div class="empty"><div class="empty-ico">🔔</div><div class="empty-txt">ALERTS FIRE WHEN NEW HIGH-SCORE SIGNALS APPEAR<br>Multi-confirmed signals and score jumps are logged here</div></div></div>
+      </div>
     </div>
   </div>
   <div>
@@ -426,21 +435,80 @@ const LAG_DECAY_HALFLIFE_MS   = 2 * 60 * 60 * 1000; // OUT-OF-BOX #3: signal dec
 
 // ── Sectors ──────────────────────────────────────────────────────────
 const SECTORS = {
+  // ── Tier-1 majors ─────────────────────────────────────────────────
   L1_MAJOR:['BTCUSDT','ETHUSDT','SOLUSDT','AVAXUSDT','DOTUSDT','BNBUSDT','ADAUSDT','TRXUSDT','HBARUSDT','TONUSDT','XRPUSDT','LTCUSDT','BCHUSDT'],
-  L1_ALT:['NEARUSDT','APTUSDT','SUIUSDT','ALGOUSDT','EGLDUSDT','ICPUSDT','FTMUSDT','SEIUSDT','MINAUSDT','EOSUSDT','THETAUSDT','KAVAUSDT','FLOWUSDT','ONEUSDT','ZILUSDT','ONTUSDT','ENJUSDT','CHZUSDT','STRKUSDT','TAOUSDT','POLUSDT'],
-  L2:['MATICUSDT','ARBUSDT','OPUSDT','IMXUSDT','STXUSDT','METISUSDT','SKLUSDT','LRCUSDT','NTRNUSDT','MANTAUSDT','ZKUSDT','MNTUSDT','CFXUSDT'],
-  DEFI:['UNIUSDT','AAVEUSDT','CRVUSDT','MKRUSDT','SNXUSDT','COMPUSDT','SUSHIUSDT','DYDXUSDT','GMXUSDT','CAKEUSDT','BALUSDT','YFIUSDT','1INCHUSDT','RUNEUSDT','KNCUSDT','PENDLEUSDT','JUPUSDT','RAYUSDT','ORCAUSDT','LDOUSDT','RPLUSDT'],
-  AI_DATA:['FETUSDT','GRTUSDT','WLDUSDT','AGIXUSDT','OCEANUSDT','NMRUSDT','RNDRUSDT','ARKMUSDT','PHBUSDT','VIRTUALUSDT'],
-  GAMING:['AXSUSDT','SANDUSDT','MANAUSDT','GALAUSDT','GMTUSDT','APEUSDT','ILVUSDT','SLPUSDT','YGGUSDT','ALICEUSDT','RONINUSDT','NOTUSDT','XAIUSDT'],
-  INFRA:['LINKUSDT','FILUSDT','ENSUSDT','STORJUSDT','IOTAUSDT','BANDUSDT','EIGENUSDT','PYTHUSDT'],
-  PAYMENTS:['XRPUSDT','XLMUSDT','LTCUSDT','VETUSDT','BCHUSDT','QNTUSDT'],
-  COSMOS:['ATOMUSDT','TIAUSDT','RUNEUSDT','INJUSDT','AKTUSDT','NTRNUSDT','SEIUSDT'],
-  MEME:['DOGEUSDT','SHIBUSDT','PEPEUSDT','FLOKIUSDT','BONKUSDT','WIFUSDT','MEMEUSDT','NEIROUSDT','BOMEUSDT'],
-  PRIVACY:['XMRUSDT','ZECUSDT','ROSEUSDT'],
-  RWA:['ONDOUSDT','POLYXUSDT'],
-  DEPIN:['IOTAUSDT','HNTUSDT','RNDRUSDT','FETUSDT','ARKMUSDT'],
+
+  // ── Alt L1s (existing + expanded) ─────────────────────────────────
+  L1_ALT:['NEARUSDT','APTUSDT','SUIUSDT','ALGOUSDT','EGLDUSDT','ICPUSDT','FTMUSDT','SEIUSDT','MINAUSDT','EOSUSDT','THETAUSDT','KAVAUSDT','FLOWUSDT','ONEUSDT','ZILUSDT','ONTUSDT','ENJUSDT','CHZUSDT','STRKUSDT','TAOUSDT','POLUSDT',
+    'ZETAUSDT','DYMUSDT','SAGAUSDT','MYROUSDT','COREUSDT','ANKRUSDT','ARUSDT','NEOUSDT','WAVESUSDT','KAIAUSDT','KDAUSDT','ASTRAUSDT','XEMUSDT','CELRUSDT'],
+
+  // ── Layer-2 scaling ────────────────────────────────────────────────
+  L2:['MATICUSDT','ARBUSDT','OPUSDT','IMXUSDT','STXUSDT','METISUSDT','SKLUSDT','LRCUSDT','NTRNUSDT','MANTAUSDT','ZKUSDT','MNTUSDT','CFXUSDT',
+    'ALTUSDT','SCRUSDT','ZROUSDT'],
+
+  // ── DeFi protocols ────────────────────────────────────────────────
+  DEFI:['UNIUSDT','AAVEUSDT','CRVUSDT','MKRUSDT','SNXUSDT','COMPUSDT','SUSHIUSDT','DYDXUSDT','GMXUSDT','CAKEUSDT','BALUSDT','YFIUSDT','1INCHUSDT','RUNEUSDT','KNCUSDT','PENDLEUSDT','JUPUSDT','RAYUSDT','ORCAUSDT','LDOUSDT','RPLUSDT',
+    'ENAUSDT','AEVOUSDT','RDNTUSDT','SYNUSDT','WOOUSDT','CVXUSDT','FXSUSDT','LQTYUSDT','PERPUSDT','STGUSDT','XVSUSDT','ALPACAUSDT'],
+
+  // ── AI / Data tokens ─────────────────────────────────────────────
+  AI_DATA:['FETUSDT','GRTUSDT','WLDUSDT','AGIXUSDT','OCEANUSDT','NMRUSDT','RNDRUSDT','ARKMUSDT','PHBUSDT','VIRTUALUSDT',
+    'TNSRUSDT','IOUSDT'],
+
+  // ── Gaming / GameFi ───────────────────────────────────────────────
+  GAMING:['AXSUSDT','SANDUSDT','MANAUSDT','GALAUSDT','GMTUSDT','APEUSDT','ILVUSDT','SLPUSDT','YGGUSDT','ALICEUSDT','RONINUSDT','NOTUSDT','XAIUSDT',
+    'PIXELUSDT','PORTALUSDT','CATIUSDT','HMSTRUSDT','BEAMUSDT','MAGICUSDT','VOXELUSDT','TLMUSDT','WAXPUSDT'],
+
+  // ── Infrastructure / Oracles ─────────────────────────────────────
+  INFRA:['LINKUSDT','FILUSDT','ENSUSDT','STORJUSDT','IOTAUSDT','BANDUSDT','EIGENUSDT','PYTHUSDT',
+    'IOTXUSDT','SSVUSDT','CTSIUSDT','ATAUSDT','HFTUSDT','RLCUSDT','ACXUSDT','LPTUSDT','CYBERUSDT','UMAUSDT'],
+
+  // ── Payments / Value transfer ─────────────────────────────────────
+  PAYMENTS:['XRPUSDT','XLMUSDT','LTCUSDT','VETUSDT','BCHUSDT','QNTUSDT',
+    'CELOUSDT','JASMYUSDT','DNTUSDT'],
+
+  // ── Cosmos / IBC ecosystem ───────────────────────────────────────
+  COSMOS:['ATOMUSDT','TIAUSDT','RUNEUSDT','INJUSDT','AKTUSDT','NTRNUSDT','SEIUSDT',
+    'DYMUSDT','OMUSDT'],
+
+  // ── Meme / culture coins ─────────────────────────────────────────
+  MEME:['DOGEUSDT','SHIBUSDT','PEPEUSDT','FLOKIUSDT','BONKUSDT','WIFUSDT','MEMEUSDT','NEIROUSDT','BOMEUSDT',
+    'PNUTUSDT','TRUMPUSDT','ACTUSDT','PENGUUSDT','TURBOUSDT'],
+
+  // ── Privacy / ZK coins ───────────────────────────────────────────
+  PRIVACY:['XMRUSDT','ZECUSDT','ROSEUSDT','DASHUSDT','DUSKUSDT'],
+
+  // ── Real World Assets ────────────────────────────────────────────
+  RWA:['ONDOUSDT','POLYXUSDT','OMUSDT'],
+
+  // ── DePIN (decentralised physical infra) ─────────────────────────
+  DEPIN:['IOTAUSDT','HNTUSDT','RNDRUSDT','FETUSDT','ARKMUSDT','IOTXUSDT','WUSDT'],
+
+  // ── Move ecosystem (Aptos / Sui / Movr) ─────────────────────────
   MOVE_ECO:['APTUSDT','SUIUSDT','MOVRUSDT'],
+
+  // ── Big Alt basket ───────────────────────────────────────────────
   BIG_ALTS:['SOLUSDT','AVAXUSDT','DOTUSDT','NEARUSDT','MATICUSDT','LTCUSDT','LINKUSDT','ATOMUSDT','UNIUSDT','AAVEUSDT','XRPUSDT','ADAUSDT'],
+
+  // ── NEW: Bitcoin Ordinals / BTC-native ecosystem ─────────────────
+  BTC_ECO:['ORDIUSDT','SATSUSDT','ARUSDT','STXUSDT'],
+
+  // ── NEW: NFT / Social tokens ─────────────────────────────────────
+  NFT_FI:['BLURRUSDT','LOOKSUSDT','GHSTUSDT','RAREUSDT','APEUSDT','SUPERUSDT','HIGHUSDT'],
+
+  // ── NEW: Liquid Staking & Restaking ─────────────────────────────
+  LST:['LDOUSDT','RPLUSDT','EIGENUSDT','REZUSDT','BBUSDT','LISTAUSDT','SSVUSDT','JTOUSDT','ETHFIUSDT'],
+
+  // ── NEW: Bridge / Interoperability ──────────────────────────────
+  BRIDGE:['ZROUSDT','WUSDT','STGUSDT','ACXUSDT'],
+
+  // ── NEW: Legacy altcoins (still active on Binance) ──────────────
+  LEGACY:['BATUSDT','ZRXUSDT','BNTUSDT','AUDIOUSDT','NKNUSDT','COTIUSDT','GLMUSDT','POWRUSDT','AGLDUSDT','HOOKUSDT','REQUSDT','IDEXUSDT','CTKUSDT','BAKEUSDT','XVSUSDT','WAXPUSDT'],
+
+  // ── NEW: Exchange / utility tokens ───────────────────────────────
+  EXCHANGE_TOK:['CHESSUSDT','C98USDT','RAREUSDT','PROMUSDT','ARDRUSDT','VANRYUSDT','MOVEUSDT','PHAUSDT','LSKUSDT','SXPUSDT','OXTUSDT','OGNUSDT','FIDAUSDT','MASKUSDT','DEGOUSDT','BICOUSDT','TRUUSDT','DODOUSDT'],
+
+  // ── NEW: Emerging L1 / appchains ─────────────────────────────────
+  EMERGING_L1:['SUPRAUSDT','APEXUSDT','VANAUSDT','MEUSDT','USUALUSDT','BIOUSDT','GRASSUSDT','BANUSDT','VTHOUSDT','XCHUSDT','FLRUSDT','STPTUSDT','ACAUSDT','LINAUSDT','MBOXUSDT','NFTUSDT','GASUSDT','RADUSDT','MDTUSDT','PONDUSDT','REEFUSDT','SFPUSDT'],
 };
 const SYMBOL_SECTOR={};
 Object.entries(SECTORS).forEach(([s,coins])=>coins.forEach(sym=>{if(!SYMBOL_SECTOR[sym])SYMBOL_SECTOR[sym]=s;}));
@@ -470,28 +538,57 @@ const CORR_PAIRS=[
   ['LDOUSDT','EIGENUSDT'],['RPLUSDT','LDOUSDT'],
   ['ONDOUSDT','POLYXUSDT'],['HNTUSDT','IOTAUSDT'],
   ['ONTUSDT','EOSUSDT'],['ALGOUSDT','NEARUSDT'],['EGLDUSDT','NEARUSDT'],
+  // ── NEW corr pairs (v5.1 expansion) ──────────────────────────────
+  ['ORDIUSDT','SATSUSDT'],['STXUSDT','ORDIUSDT'],['ARUSDT','ORDIUSDT'],
+  ['ENAUSDT','AAVEUSDT'],['RDNTUSDT','AAVEUSDT'],['CVXUSDT','CRVUSDT'],
+  ['FXSUSDT','CRVUSDT'],['LQTYUSDT','MKRUSDT'],['PERPUSDT','DYDXUSDT'],
+  ['AEVOUSDT','GMXUSDT'],['STGUSDT','ZROUSDT'],['WUSDT','ZROUSDT'],
+  ['SYNUSDT','ARBUSDT'],['ALTUSDT','ARBUSDT'],['SCRUSDT','OPUSDT'],
+  ['ZETAUSDT','NEARUSDT'],['DYMUSDT','TIAUSDT'],['SAGAUSDT','DOTUSDT'],
+  ['MYROUSDT','SOLUSDT'],['COREUSDT','BTCUSDT'],['KAIAUSDT','NEARUSDT'],
+  ['TNSRUSDT','FETUSDT'],['IOUSDT','FETUSDT'],['TNSRUSDT','RNDRUSDT'],
+  ['PIXELUSDT','AXSUSDT'],['PORTALUSDT','AXSUSDT'],['CATIUSDT','GALAUSDT'],
+  ['BEAMUSDT','SANDUSDT'],['MAGICUSDT','AXSUSDT'],['VOXELUSDT','SANDUSDT'],
+  ['IOTXUSDT','IOTAUSDT'],['SSVUSDT','EIGENUSDT'],['JTOUSDT','LDOUSDT'],
+  ['REZUSDT','EIGENUSDT'],['BBUSDT','EIGENUSDT'],['LISTAUSDT','LDOUSDT'],
+  ['BLURRUSDT','APEUSDT'],['LOOKSUSDT','BLURRUSDT'],['RAREUSDT','BLURRUSDT'],
+  ['PNUTUSDT','PEPEUSDT'],['TRUMPUSDT','DOGEUSDT'],['PENGUUSDT','NEIROUSDT'],
+  ['ACTUSDT','PEPEUSDT'],['TURBOUSDT','BONKUSDT'],
+  ['DASHUSDT','LTCUSDT'],['ZECUSDT','XMRUSDT'],['DUSKUSDT','ROSEUSDT'],
+  ['CELOUSDT','XLMUSDT'],['JASMYUSDT','IOTAUSDT'],
+  ['OMUSDT','ONDOUSDT'],['WOOUSDT','UNIUSDT'],['XVSUSDT','AAVEUSDT'],
+  ['AUDIOSDT','MANEUSDT'],['GLMUSDT','FILUSDT'],['BNTUSDT','UNIUSDT'],
+  ['BATUSDT','AUDIOUSDT'],['ZRXUSDT','UNIUSDT'],['HOOKUSDT','SUPERUSDT'],
+  ['HIGHUSDT','GALAUSDT'],['AGLDUSDT','MANAUSDT'],
 ];
 
 // ── Sub-narratives ────────────────────────────────────────────────────
 const SUB_NARRATIVE={
-  COSMOS_ECO:['ATOMUSDT','TIAUSDT','INJUSDT','AKTUSDT','NTRNUSDT','SEIUSDT'],
-  ETH_L2:['MATICUSDT','ARBUSDT','OPUSDT','METISUSDT','SKLUSDT','LRCUSDT','IMXUSDT','STRKUSDT','ZKUSDT','MANTAUSDT','MNTUSDT'],
-  SOL_ECO:['SOLUSDT','BONKUSDT','WIFUSDT','JUPUSDT','RAYUSDT','ORCAUSDT','PYTHUSDT','BOMEUSDT'],
+  COSMOS_ECO:['ATOMUSDT','TIAUSDT','INJUSDT','AKTUSDT','NTRNUSDT','SEIUSDT','DYMUSDT','OMUSDT'],
+  ETH_L2:['MATICUSDT','ARBUSDT','OPUSDT','METISUSDT','SKLUSDT','LRCUSDT','IMXUSDT','STRKUSDT','ZKUSDT','MANTAUSDT','MNTUSDT','ALTUSDT','SCRUSDT'],
+  SOL_ECO:['SOLUSDT','BONKUSDT','WIFUSDT','JUPUSDT','RAYUSDT','ORCAUSDT','PYTHUSDT','BOMEUSDT','MYROUSDT','JTOUSDT'],
   MOVE_ECO:['APTUSDT','SUIUSDT','MOVRUSDT'],
-  AI_COMPUTE:['FETUSDT','AGIXUSDT','RNDRUSDT','OCEANUSDT','WLDUSDT','GRTUSDT','NMRUSDT','ARKMUSDT','VIRTUALUSDT'],
-  GAMEFI:['AXSUSDT','ILVUSDT','SLPUSDT','YGGUSDT','GALAUSDT','ALICEUSDT','RONINUSDT','XAIUSDT'],
-  METAVERSE:['SANDUSDT','MANAUSDT','APEUSDT','GMTUSDT'],
-  DEX:['UNIUSDT','SUSHIUSDT','CRVUSDT','BALUSDT','1INCHUSDT','CAKEUSDT','JUPUSDT','RAYUSDT','ORCAUSDT'],
-  LENDING:['AAVEUSDT','COMPUSDT','MKRUSDT','SNXUSDT','KNCUSDT'],
-  PERPS:['DYDXUSDT','GMXUSDT','SNXUSDT'],
-  LST:['LDOUSDT','RPLUSDT','EIGENUSDT'],
-  MEME_SOL:['BONKUSDT','WIFUSDT','BOMEUSDT','NEIROUSDT'],
+  AI_COMPUTE:['FETUSDT','AGIXUSDT','RNDRUSDT','OCEANUSDT','WLDUSDT','GRTUSDT','NMRUSDT','ARKMUSDT','VIRTUALUSDT','TNSRUSDT','IOUSDT'],
+  GAMEFI:['AXSUSDT','ILVUSDT','SLPUSDT','YGGUSDT','GALAUSDT','ALICEUSDT','RONINUSDT','XAIUSDT','PIXELUSDT','PORTALUSDT','CATIUSDT','MAGICUSDT','BEAMUSDT','VOXELUSDT'],
+  METAVERSE:['SANDUSDT','MANAUSDT','APEUSDT','GMTUSDT','WAXPUSDT'],
+  DEX:['UNIUSDT','SUSHIUSDT','CRVUSDT','BALUSDT','1INCHUSDT','CAKEUSDT','JUPUSDT','RAYUSDT','ORCAUSDT','WOOUSDT'],
+  LENDING:['AAVEUSDT','COMPUSDT','MKRUSDT','SNXUSDT','KNCUSDT','RDNTUSDT','XVSUSDT','ALPACAUSDT'],
+  PERPS:['DYDXUSDT','GMXUSDT','SNXUSDT','AEVOUSDT','PERPUSDT'],
+  LST_ECO:['LDOUSDT','RPLUSDT','EIGENUSDT','REZUSDT','BBUSDT','LISTAUSDT','SSVUSDT','JTOUSDT'],
+  STABLECOIN_YIELD:['ENAUSDT','FXSUSDT','CVXUSDT','LQTYUSDT','CRVUSDT'],
+  BRIDGE_PROTO:['ZROUSDT','WUSDT','STGUSDT','ACXUSDT'],
+  MEME_SOL:['BONKUSDT','WIFUSDT','BOMEUSDT','NEIROUSDT','MYROUSDT'],
   MEME_OG:['DOGEUSDT','SHIBUSDT','FLOKIUSDT'],
-  MEME_NEW:['PEPEUSDT','NEIROUSDT'],
-  REMITTANCE:['XRPUSDT','XLMUSDT','QNTUSDT'],
+  MEME_NEW:['PEPEUSDT','NEIROUSDT','PNUTUSDT','PENGUUSDT','ACTUSDT','TURBOUSDT'],
+  MEME_POLITICAL:['TRUMPUSDT','DOGEUSDT'],
+  REMITTANCE:['XRPUSDT','XLMUSDT','QNTUSDT','CELOUSDT'],
   ORACLE:['LINKUSDT','BANDUSDT','PYTHUSDT'],
-  INTEROP:['DOTUSDT','ATOMUSDT'],
-  DEPIN_NET:['IOTAUSDT','HNTUSDT','FETUSDT','ARKMUSDT'],
+  INTEROP:['DOTUSDT','ATOMUSDT','ZROUSDT','WUSDT'],
+  DEPIN_NET:['IOTAUSDT','HNTUSDT','FETUSDT','ARKMUSDT','IOTXUSDT'],
+  BTC_LAYER2:['STXUSDT','ORDIUSDT','SATSUSDT','ARUSDT'],
+  NFT_MARKET:['BLURRUSDT','LOOKSUSDT','GHSTUSDT','RAREUSDT','APEUSDT'],
+  DA_LAYER:['TIAUSDT','DYMUSDT','EIGENUSDT','SSVUSDT'],
+  RWA_PROTO:['ONDOUSDT','POLYXUSDT','OMUSDT'],
 };
 const SYM_NARRATIVES={};
 Object.entries(SUB_NARRATIVE).forEach(([nar,coins])=>coins.forEach(sym=>{if(!SYM_NARRATIVES[sym])SYM_NARRATIVES[sym]=[];SYM_NARRATIVES[sym].push(nar);}));
@@ -501,9 +598,12 @@ function sharedNarratives(a,b){return(SYM_NARRATIVES[a]||[]).filter(n=>(SYM_NARR
 const CAP_TIER={
   BTCUSDT:1,ETHUSDT:1,BNBUSDT:1,SOLUSDT:1,XRPUSDT:1,
   ADAUSDT:2,AVAXUSDT:2,DOGEUSDT:2,DOTUSDT:2,TRXUSDT:2,TONUSDT:2,MATICUSDT:2,POLUSDT:2,LTCUSDT:2,LINKUSDT:2,UNIUSDT:2,SHIBUSDT:2,BCHUSDT:2,XLMUSDT:2,HBARUSDT:2,
-  NEARUSDT:3,APTUSDT:3,ARBUSDT:3,OPUSDT:3,ATOMUSDT:3,ICPUSDT:3,FILUSDT:3,INJUSDT:3,IMXUSDT:3,AAVEUSDT:3,TIAUSDT:3,RUNEUSDT:3,SUIUSDT:3,WLDUSDT:3,FTMUSDT:3,ALGOUSDT:3,EGLDUSDT:3,STXUSDT:3,SEIUSDT:3,STRKUSDT:3,TAOUSDT:3,ONDOUSDT:3,PENDLEUSDT:3,PEPEUSDT:3,XMRUSDT:3,VETUSDT:3,LDOUSDT:3,MKRUSDT:3,RONINUSDT:3,EIGENUSDT:3,PYTHUSDT:3,JUPUSDT:3,RPLUSDT:3,MNTUSDT:3,IOTAUSDT:3,
+  NEARUSDT:3,APTUSDT:3,ARBUSDT:3,OPUSDT:3,ATOMUSDT:3,ICPUSDT:3,FILUSDT:3,INJUSDT:3,IMXUSDT:3,AAVEUSDT:3,TIAUSDT:3,RUNEUSDT:3,SUIUSDT:3,WLDUSDT:3,FTMUSDT:3,ALGOUSDT:3,EGLDUSDT:3,STXUSDT:3,SEIUSDT:3,STRKUSDT:3,TAOUSDT:3,ONDOUSDT:3,PENDLEUSDT:3,PEPEUSDT:3,XMRUSDT:3,VETUSDT:3,LDOUSDT:3,MKRUSDT:3,RONINUSDT:3,EIGENUSDT:3,PYTHUSDT:3,JUPUSDT:3,RPLUSDT:3,MNTUSDT:3,IOTAUSDT:3,ENAUSDT:3,OMUSDT:3,ARUSDT:3,ORDIUSDT:3,
   FETUSDT:4,GRTUSDT:4,SUSHIUSDT:4,DYDXUSDT:4,GMXUSDT:4,CRVUSDT:4,CAKEUSDT:4,SANDUSDT:4,MANAUSDT:4,AXSUSDT:4,SNXUSDT:4,COMPUSDT:4,ENSUSDT:4,GALAUSDT:4,APEUSDT:4,GMTUSDT:4,AGIXUSDT:4,RNDRUSDT:4,YFIUSDT:4,BALUSDT:4,OCEANUSDT:4,ZECUSDT:4,FLOKIUSDT:4,BONKUSDT:4,WIFUSDT:4,BANDUSDT:4,KNCUSDT:4,QNTUSDT:4,RAYUSDT:4,ORCAUSDT:4,HNTUSDT:4,ARKMUSDT:4,VIRTUALUSDT:4,NTRNUSDT:4,AKTUSDT:4,MANTAUSDT:4,ZKUSDT:4,MOVRUSDT:4,CFXUSDT:4,EOSUSDT:4,ONTUSDT:4,KAVAUSDT:4,THETAUSDT:4,ZILUSDT:4,POLYXUSDT:4,PHBUSDT:4,
+  AEVOUSDT:4,RDNTUSDT:4,CVXUSDT:4,FXSUSDT:4,SYNUSDT:4,WOOUSDT:4,STGUSDT:4,XVSUSDT:4,TNSRUSDT:4,IOUSDT:4,ZETAUSDT:4,DYMUSDT:4,SAGAUSDT:4,MYROUSDT:4,COREUSDT:4,ANKRUSDT:4,ALTUSDT:4,ZROUSDT:4,WUSDT:4,JTOUSDT:4,SSVUSDT:4,REZUSDT:4,BBUSDT:4,LISTAUSDT:4,KAIAUSDT:4,NEOUSDT:4,BLURRUSDT:4,PNUTUSDT:4,TRUMPUSDT:4,PENGUUSDT:4,TURBOUSDT:4,ACTUSDT:4,SATSUSDT:4,IOTXUSDT:4,CTSIUSDT:4,ATAUSDT:4,PERPUSDT:4,LQTYUSDT:4,
   SKLUSDT:5,METISUSDT:5,LRCUSDT:5,ILVUSDT:5,SLPUSDT:5,YGGUSDT:5,ALICEUSDT:5,STORJUSDT:5,ROSEUSDT:5,NMRUSDT:5,ONEUSDT:5,MINAUSDT:5,ENJUSDT:5,NEIROUSDT:5,MEMEUSDT:5,BOMEUSDT:5,XAIUSDT:5,NOTUSDT:5,
+  PIXELUSDT:5,PORTALUSDT:5,CATIUSDT:5,HMSTRUSDT:5,BEAMUSDT:5,MAGICUSDT:5,VOXELUSDT:5,TLMUSDT:5,WAXPUSDT:5,GHSTUSDT:5,RAREUSDT:5,LOOKSUSDT:5,SUPERUSDT:5,HIGHUSDT:5,HOOKUSDT:5,AGLDUSDT:5,CELOUSDT:5,JASMYUSDT:5,DNTUSDT:5,ACXUSDT:5,HFTUSDT:5,RLCUSDT:5,KDAUSDT:5,ASTRAUSDT:5,XEMUSDT:5,CELRUSDT:5,WAVESUSDT:5,NEOUSDT:5,DASHUSDT:5,DUSKUSDT:5,BATUSDT:5,ZRXUSDT:5,BNTUSDT:5,AUDIOUSDT:5,NKNUSDT:5,COTIUSDT:5,GLMUSDT:5,POWRUSDT:5,REQUSDT:5,IDEXUSDT:5,CTKUSDT:5,BAKEUSDT:5,SCRUSDT:5,ALPACAUSDT:5,OMUSDT:4,
+  CHESSUSDT:5,C98USDT:5,PROMUSDT:5,ARDRUSDT:5,VANRYUSDT:5,MOVEUSDT:5,PHAUSDT:5,LSKUSDT:5,SXPUSDT:5,OXTUSDT:5,OGNUSDT:5,FIDAUSDT:5,MASKUSDT:5,DEGOUSDT:5,BICOUSDT:5,TRUUSDT:5,DODOUSDT:5,SUPRAUSDT:5,PIXFIUSDT:5,APEXUSDT:5,VANAUSDT:5,MEUSDT:5,USUALUSDT:5,BIOUSDT:5,GRASSUSDT:5,BANUSDT:5,VTHOUSDT:5,XCHUSDT:5,FLRUSDT:5,RIFUSDT:5,LPTUSDT:5,CYBERUSDT:5,UMAUSDT:5,FORTHUSDT:5,TWTUSDT:5,
 };
 const CAP_L=['','MEGA','LARGE','MID','SMALL','MICRO'];
 function capTier(sym){return CAP_TIER[sym]||3;}
@@ -516,6 +616,7 @@ let filters={tfOnly:true,hideIso:true,hideStale:false,hideWait:false,hideBelow:t
 let allSignals=[],allMetrics={},allSectors={},graveyard=[],filteredSigs=[];
 let selectedIdx=-1,soundEnabled=false,scanInProgress=false,prevTopScore=-1;
 let sessionInterval=null,pricePollTimer=null,hitTracker=[];
+let alertLog=[]; // NEW: session alert history log
 // FIX #6: pump cooldown store — {leaderSym: timestampOfFirstPump}
 let pumpCooldownStore = {};
 // OUT-OF-BOX #1: narrative momentum — last 3 scan signal counts per sector
@@ -644,6 +745,21 @@ async function fetchOIDivergence(symbol){
 }
 
 
+// ── RSI(14) calculation ───────────────────────────────────────────────
+function calcRSI(closes,period=14){
+  if(closes.length<period+1)return 50;
+  let gains=0,losses=0;
+  for(let i=1;i<=period;i++){const d=closes[i]-closes[i-1];d>0?gains+=d:losses-=d;}
+  let avgG=gains/period,avgL=losses/period;
+  for(let i=period+1;i<closes.length;i++){
+    const d=closes[i]-closes[i-1];
+    avgG=(avgG*(period-1)+(d>0?d:0))/period;
+    avgL=(avgL*(period-1)+(d<0?-d:0))/period;
+  }
+  if(avgL===0)return 100;
+  return Math.round(100-(100/(1+avgG/avgL)));
+}
+
 function calcEMA(closes,period){const k=2/(period+1);let e=closes[0];for(let i=1;i<closes.length;i++)e=closes[i]*k+e*(1-k);return e;}
 function hourNorm(candles1h){
   if(candles1h.length<168)return null;
@@ -700,7 +816,17 @@ async function computeMetrics(symbol){
     const doNotChaseAbove=price*1.03;
     const nearestRes=Math.max(ema50,vp.vah,prevH4);
     const nearestSup=Math.max(ema20,vp.val,prevL4);
-    return{price,change1h,change4h,change24h,quoteVol24h,volRatio,hnVolRatio,hnNormalized:!!hnAvg,tfAligned,tfData:{tfScore,tfAligned},vp,ema20,ema50,structData:{structScore,structLabel},volQuality,entryData:{timingScore,timing,atBreakout,atSupport:price<=vp.val*1.02},breakout:{stage,invalidation,doNotChaseAbove,nearestRes,nearestSup,ema20,ema50,p4hHigh:prevH4,p4hLow:prevL4,pdHigh:c1h.slice(-25,-1).reduce((a,c)=>Math.max(a,c.high),0)},c1h,c4h};
+    // ── RSI(14) on 1H closes ─────────────────────────────────────────
+    const rsi14=calcRSI(closes1h.slice(-30));
+    const rsiLabel=rsi14>=70?'OVERBOUGHT ⚠':rsi14>=55?'BULLISH':rsi14>=45?'NEUTRAL':rsi14>=30?'BEARISH':'OVERSOLD 🎯';
+    const rsiScore=rsi14>=80?15:rsi14>=70?40:rsi14>=55?85:rsi14>=45?70:rsi14>=35?60:rsi14>=25?80:50; // oversold=opportunity, overbought=penalty
+    // ── Whale candle detection (top-5% body size in last 72H) ────────
+    const candle72=c1h.slice(-72);
+    const bodySizes=candle72.map(c=>Math.abs(c.close-c.open));
+    const bodyThreshold=bodySizes.slice().sort((a,b)=>a-b)[Math.floor(bodySizes.length*0.95)];
+    const lastBody=Math.abs(lc.close-lc.open);
+    const isWhalCandle=lastBody>=bodyThreshold&&lc.close>lc.open;
+    return{price,change1h,change4h,change24h,quoteVol24h,volRatio,hnVolRatio,hnNormalized:!!hnAvg,tfAligned,tfData:{tfScore,tfAligned},vp,ema20,ema50,rsi14,rsiLabel,rsiScore,isWhalCandle,structData:{structScore,structLabel},volQuality,entryData:{timingScore,timing,atBreakout,atSupport:price<=vp.val*1.02},breakout:{stage,invalidation,doNotChaseAbove,nearestRes,nearestSup,ema20,ema50,p4hHigh:prevH4,p4hLow:prevL4,pdHigh:c1h.slice(-25,-1).reduce((a,c)=>Math.max(a,c.high),0)},c1h,c4h};
   }catch{return null;}
 }
 
@@ -721,12 +847,16 @@ async function computeRegime(metrics){
   else if(!btcAboveEmas&&btcC4h<-2){regime='RISK_OFF';subMode='BEAR_TREND';altMultiplier=0.5;desc='BTC below EMAs and falling — avoid aggressive alt trades';}
   else if(btcC4h>2&&ethBtcTrend!=='RISING'){regime='RISK_ON';subMode='BTC_DOMINANCE';altMultiplier=0.8;desc='BTC pumping but ETH/BTC falling — money in BTC only';}
   else{regime='NEUTRAL';subMode='MIXED_SIGNALS';altMultiplier=1.0;desc='Mixed signals — trade only highest conviction setups';}
-  let frRate=null,frLabel='—';
+  let frRate=null,frLabel='—',ethFrRate=null,ethFrLabel='—';
   try{
-    const fr=await bFetch('/fapi/v1/fundingRate?symbol=BTCUSDT&limit=1',true);
-    if(Array.isArray(fr)&&fr.length){frRate=parseFloat(fr[0].fundingRate)*100;frLabel=frRate>0.1?`${frRate.toFixed(3)}% 🔴 CROWDED LONGS`:frRate>0.05?`${frRate.toFixed(3)}% ⚠ ELEVATED`:frRate<-0.05?`${frRate.toFixed(3)}% ⚠ CROWDED SHORTS`:`${frRate.toFixed(3)}% ✅ CLEAN`;}
+    const [btcFr,ethFr]=await Promise.allSettled([
+      bFetch('/fapi/v1/fundingRate?symbol=BTCUSDT&limit=1',true),
+      bFetch('/fapi/v1/fundingRate?symbol=ETHUSDT&limit=1',true),
+    ]);
+    if(btcFr.status==='fulfilled'&&Array.isArray(btcFr.value)&&btcFr.value.length){frRate=parseFloat(btcFr.value[0].fundingRate)*100;frLabel=frRate>0.1?`${frRate.toFixed(3)}% 🔴 CROWDED LONGS`:frRate>0.05?`${frRate.toFixed(3)}% ⚠ ELEVATED`:frRate<-0.05?`${frRate.toFixed(3)}% ⚠ CROWDED SHORTS`:`${frRate.toFixed(3)}% ✅ CLEAN`;}
+    if(ethFr.status==='fulfilled'&&Array.isArray(ethFr.value)&&ethFr.value.length){ethFrRate=parseFloat(ethFr.value[0].fundingRate)*100;ethFrLabel=ethFrRate>0.1?`${ethFrRate.toFixed(3)}% 🔴`:ethFrRate>0.05?`${ethFrRate.toFixed(3)}% ⚠`:ethFrRate<-0.05?`${ethFrRate.toFixed(3)}% ⚠`:`${ethFrRate.toFixed(3)}% ✅`;}
   }catch{}
-  return{regime,subMode,altMultiplier,description:desc,btcTrend1h:trend1h,btcTrend4h:trend4h,ethBtcTrend,btcChange4h:btcC4h,ethChange4h:ethC4h,btcEma20:ema20.toFixed(0),btcEma50:ema50.toFixed(0),btcFundingRate:frRate,btcFundingLabel:frLabel};
+  return{regime,subMode,altMultiplier,description:desc,btcTrend1h:trend1h,btcTrend4h:trend4h,ethBtcTrend,btcChange4h:btcC4h,ethChange4h:ethC4h,btcEma20:ema20.toFixed(0),btcEma50:ema50.toFixed(0),btcFundingRate:frRate,btcFundingLabel:frLabel,ethFundingRate:ethFrRate,ethFundingLabel:ethFrLabel};
 }
 
 // ── Scoring engine ─────────────────────────────────────────────────────
@@ -773,17 +903,21 @@ function scoreCandidate(sym,leader,m,ml,regime,isolated,oiData,signalGeneratedAt
   const oiScore=oiData?.oiScore??50;
   // FIX #5: hard penalise FAKE_BREAKOUT — OI falling as price rises = don't follow
   const oiFakeBreakout=oiData?.divergence==='FAKE_BREAKOUT';
-  // 12-factor composite (OI replaces 5% of volQuality weight)
-  const composite=narScore*.10+capScore*.12+lagQuality*.14+momScore*.10+vpScore*.09+tfScore*.09+structScore*.07+volScore*.07+rsScore*.06+vqScore*.04+trendScore*.04+timingScore*.04+oiScore*.04;
+  // RSI gate: overbought RSI on laggard = late entry risk; oversold = opportunity
+  const rsiScore=m.rsiScore??65;
+  const rsiOverbought=(m.rsi14||50)>=78; // RSI >=78 = late, penalise
+  // 13-factor composite (RSI replaces 2% from oiScore weight; oiScore 4%→2%)
+  const composite=narScore*.10+capScore*.12+lagQuality*.14+momScore*.10+vpScore*.09+tfScore*.09+structScore*.07+volScore*.07+rsScore*.06+vqScore*.04+trendScore*.04+timingScore*.04+oiScore*.02+rsiScore*.02;
   let finalScore=composite*(regime?.altMultiplier||1.0);
   if(isolated)finalScore*=0.65;
   if(!tfAligned)finalScore=Math.min(finalScore,55);
   if(oiFakeBreakout)finalScore*=0.5; // FIX #5: halve score on OI fake-out signal
+  if(rsiOverbought)finalScore*=0.75; // RSI gate: overbought laggard = likely chasing
   // OUT-OF-BOX #3: apply time-decay to existing signals (new signals get full score)
   const decayMult=signalGeneratedAt?lagDecayMultiplier(signalGeneratedAt):1.0;
   const decayInfo=lagDecayLabel(signalGeneratedAt||Date.now());
   finalScore=finalScore*decayMult;
-  return{score:Math.min(100,Math.max(0,Math.round(finalScore))),scoreBreakdown:{narrative:Math.round(narScore),capTier:Math.round(capScore),lagQuality:Math.round(lagQuality),momentum:Math.round(momScore),vpLevel:Math.round(vpScore),tfAlign:Math.round(tfScore),structure:Math.round(structScore),volDry:Math.round(volScore),relStrength:Math.round(rsScore),volQuality:Math.round(vqScore),trend:Math.round(trendScore),timing:Math.round(timingScore),oiDivergence:Math.round(oiScore)},vpLabel:m.vp?vpLevelLabel(m.price,m.vp):'—',vp:m.vp,narCount,capTierVal:capTier(sym),rs1h,rs4h,tfAligned,oiData,oiFakeBreakout,decayInfo};
+  return{score:Math.min(100,Math.max(0,Math.round(finalScore))),scoreBreakdown:{narrative:Math.round(narScore),capTier:Math.round(capScore),lagQuality:Math.round(lagQuality),momentum:Math.round(momScore),vpLevel:Math.round(vpScore),tfAlign:Math.round(tfScore),structure:Math.round(structScore),volDry:Math.round(volScore),relStrength:Math.round(rsScore),volQuality:Math.round(vqScore),trend:Math.round(trendScore),timing:Math.round(timingScore),oiDivergence:Math.round(oiScore),rsi:Math.round(rsiScore)},vpLabel:m.vp?vpLevelLabel(m.price,m.vp):'—',vp:m.vp,narCount,capTierVal:capTier(sym),rs1h,rs4h,tfAligned,oiData,oiFakeBreakout,rsi14:m.rsi14||50,rsiLabel:m.rsiLabel||'—',rsiOverbought,isWhalCandle:m.isWhalCandle||false,decayInfo};
 }
 
 // ── Signal builder ──────────────────────────────────────────────────────
@@ -800,7 +934,7 @@ function buildSignal(baseType,sym,leader,sector,metrics,regime,isolated,existing
   const oiData=oiCache[sym]||null;
   const genAt=existingGeneratedAt||Date.now();
   const scored=scoreCandidate(sym,leader,m,ml,regime,isolated,oiData,genAt);
-  const{score,scoreBreakdown,vpLabel,vp,narCount,capTierVal,rs1h,rs4h,tfAligned,oiFakeBreakout,decayInfo}=scored;
+  const{score,scoreBreakdown,vpLabel,vp,narCount,capTierVal,rs1h,rs4h,tfAligned,oiFakeBreakout,rsi14,rsiLabel,rsiOverbought,isWhalCandle,decayInfo}=scored;
   const bo=m.breakout||{stage:'IN_RANGE'};
   const catchUpPct=parseFloat(lag.toFixed(2));
   const riskPct=bo.invalidation?((m.price-bo.invalidation)/m.price*100):Math.abs(m.change4h)||2;
@@ -808,7 +942,7 @@ function buildSignal(baseType,sym,leader,sector,metrics,regime,isolated,existing
   const narLabel=narCount>=2?'🔥 SAME ECOSYSTEM':narCount===1?'✓ RELATED':'○ BROAD SECTOR';
   const leaderMove4h=parseFloat(ml.change4h.toFixed(2));
   const leaderMove24h=parseFloat(ml.change24h.toFixed(2));
-  return{type:baseType,symbol:sym,sector,leader,leaderGain:parseFloat(ml.change1h.toFixed(2)),leaderMove4h,leaderMove24h,ownChange1h:parseFloat(m.change1h.toFixed(2)),ownChange4h:parseFloat(m.change4h.toFixed(2)),change24h:parseFloat(m.change24h.toFixed(2)),lag:catchUpPct,price:m.price,volRatio:parseFloat((m.hnVolRatio||m.volRatio||1).toFixed(2)),hnNormalized:m.hnNormalized||false,quoteVol24h:Math.round(m.quoteVol24h||0),score,scoreBreakdown,vpLabel,vp,narLabel,narCount,capTierVal,rs1h,rs4h,tfAligned,oiData,oiFakeBreakout:oiFakeBreakout||false,decayInfo,breakout:bo,catchUpPct,rr,volQuality:m.volQuality,structData:m.structData,entryData:m.entryData,isolated,generatedAt:genAt,currentPrice:m.price,livePctMove:0,narrative:`${leader.replace('USDT','')} +${ml.change1h.toFixed(1)}% [4h:${leaderMove4h>=0?'+':''}${leaderMove4h}%] · ${sym.replace('USDT','')} lags ${lag.toFixed(1)}% · ${narLabel} · ${bo.stage} · VP:${vpLabel}${tfAligned?'':' · ⚠TF CONFLICT'}${isolated?' · ⚠ISOLATED':''}${oiFakeBreakout?' · ⚠OI FAKE-OUT':''}`};
+  return{type:baseType,symbol:sym,sector,leader,leaderGain:parseFloat(ml.change1h.toFixed(2)),leaderMove4h,leaderMove24h,ownChange1h:parseFloat(m.change1h.toFixed(2)),ownChange4h:parseFloat(m.change4h.toFixed(2)),change24h:parseFloat(m.change24h.toFixed(2)),lag:catchUpPct,price:m.price,volRatio:parseFloat((m.hnVolRatio||m.volRatio||1).toFixed(2)),hnNormalized:m.hnNormalized||false,quoteVol24h:Math.round(m.quoteVol24h||0),score,scoreBreakdown,vpLabel,vp,narLabel,narCount,capTierVal,rs1h,rs4h,tfAligned,oiData,oiFakeBreakout:oiFakeBreakout||false,rsi14:rsi14||50,rsiLabel:rsiLabel||'—',rsiOverbought:rsiOverbought||false,isWhalCandle:isWhalCandle||false,decayInfo,breakout:bo,catchUpPct,rr,volQuality:m.volQuality,structData:m.structData,entryData:m.entryData,isolated,generatedAt:genAt,currentPrice:m.price,livePctMove:0,narrative:`${leader.replace('USDT','')} +${ml.change1h.toFixed(1)}% [4h:${leaderMove4h>=0?'+':''}${leaderMove4h}%] · ${sym.replace('USDT','')} lags ${lag.toFixed(1)}% · ${narLabel} · ${bo.stage} · VP:${vpLabel} · RSI:${rsi14}${tfAligned?'':' · ⚠TF CONFLICT'}${isolated?' · ⚠ISOLATED':''}${oiFakeBreakout?' · ⚠OI FAKE-OUT':''}${isWhalCandle?' · 🐋 WHALE CANDLE':''}${rsiOverbought?' · ⚠RSI OVERBOUGHT':''}`};
 }
 
 // ── Detectors ──────────────────────────────────────────────────────────
@@ -1022,7 +1156,7 @@ async function triggerScan(){
     renderRegime(regime);
 
     const otherSyms=ALL_SYMBOLS.filter(s=>s!=='BTCUSDT'&&s!=='ETHUSDT');
-    const BATCH=8;let done=0;
+    const BATCH=14;let done=0;
     for(let i=0;i<otherSyms.length;i+=BATCH){
       const batch=otherSyms.slice(i,i+BATCH);
       const results=await Promise.allSettled(batch.map(s=>computeMetrics(s)));
@@ -1037,7 +1171,7 @@ async function triggerScan(){
 
     // FIX #5: Fetch OI divergence for top liquid coins (futures only, best-effort)
     pfg.style.width='76%';ptxt.textContent='FETCHING OI DATA…';
-    const oiSyms=['BTCUSDT','ETHUSDT','SOLUSDT','AVAXUSDT','NEARUSDT','ARBUSDT','LINKUSDT','AAVEUSDT','INJUSDT','ATOMUSDT','DOTUSDT','UNIUSDT','FETUSDT','SUIUSDT','APTUSDT','MATICUSDT','OPUSDT'];
+    const oiSyms=['BTCUSDT','ETHUSDT','SOLUSDT','AVAXUSDT','NEARUSDT','ARBUSDT','LINKUSDT','AAVEUSDT','INJUSDT','ATOMUSDT','DOTUSDT','UNIUSDT','FETUSDT','SUIUSDT','APTUSDT','MATICUSDT','OPUSDT','ORDIUSDT','ENAUSDT','ZETAUSDT','DYMUSDT','JTOUSDT','EIGENUSDT','LDOUSDT','BONKUSDT','PEPEUSDT','DOGEUSDT'];
     await Promise.allSettled(oiSyms.map(async sym=>{
       try{const oi=await fetchOIDivergence(sym);if(oi)oiCache[sym]=oi;}catch{}
     }));
@@ -1118,8 +1252,28 @@ function recordSignal(sig){
   graveyard.unshift({symbol:sig.symbol,type:sig.type,score:sig.score,sector:sig.sector,entryPrice:sig.price,generatedAt:Date.now(),outcome:null,pctMove:null,stage:sig.breakout?.stage});
   if(graveyard.length>60)graveyard.pop();
   hitTracker.push({sig:{symbol:sig.symbol,price:sig.price,type:sig.type,score:sig.score},generatedAt:Date.now(),outcomes:{}});
+  // NEW: log notable alerts — multi-confirmed or score>=78 or whale candle
+  if(sig.confirmed||sig.score>=78||sig.isWhalCandle){
+    alertLog.unshift({symbol:sig.symbol,type:sig.confirmed?'multi':sig.type,score:sig.score,reason:sig.confirmed?'⚡ Multi-confirmed':sig.isWhalCandle?'🐋 Whale candle detected':'🎯 High score signal',ts:Date.now(),sector:sig.sector,leader:sig.leader});
+    if(alertLog.length>80)alertLog.pop();
+    renderAlertLog();
+  }
   renderGraveyard();
 }
+
+// ── Alert log render/clear ────────────────────────────────────────────
+function renderAlertLog(){
+  const el=document.getElementById('alertLogRows');
+  if(!el)return;
+  if(!alertLog.length){el.innerHTML=`<div class="empty"><div class="empty-ico">🔔</div><div class="empty-txt">ALERTS FIRE WHEN NEW HIGH-SCORE SIGNALS APPEAR<br>Multi-confirmed signals and score jumps are logged here</div></div>`;return;}
+  el.innerHTML=alertLog.map(a=>`<div class="gyard-row" style="grid-template-columns:1fr 90px 70px 60px">
+    <div><div style="font-weight:700;font-size:.6rem;color:#fff">${a.symbol.replace('USDT','')}</div><div style="font-size:.46rem;color:var(--muted)">${a.reason} · ${a.sector}${a.leader?' · ← '+a.leader.replace('USDT',''):''}</div></div>
+    <div style="text-align:right;font-size:.52rem;color:var(--muted)">${a.type}</div>
+    <div style="text-align:right;font-size:.6rem;font-weight:700;color:${a.score>=80?'var(--acc)':a.score>=60?'var(--acc2)':'var(--warn)'}">${a.score}%</div>
+    <div style="text-align:right;font-size:.5rem;color:var(--muted)">${ago(a.ts)}</div>
+  </div>`).join('');
+}
+function clearAlertLog(){alertLog=[];renderAlertLog();showToast('Alert log cleared');}
 
 // ── Regime render ───────────────────────────────────────────────────────
 function renderRegime(r){
@@ -1144,6 +1298,8 @@ function renderRegime(r){
   document.getElementById('regEma50').textContent='$'+(r.btcEma50||'—');
   const frPill=document.getElementById('frPill'),fr=r.btcFundingRate;
   if(fr!=null){frPill.textContent=r.btcFundingLabel||'—';frPill.className='fr-pill '+(fr>0.05||fr<-0.05?'danger':fr>0.02?'warn':'clean');}
+  const ethFrPill=document.getElementById('ethFrPill'),efr=r.ethFundingRate;
+  if(efr!=null){ethFrPill.textContent=r.ethFundingLabel||'—';ethFrPill.className='fr-pill '+(efr>0.05||efr<-0.05?'danger':efr>0.02?'warn':'clean');}
   document.getElementById('regimeWarn').className='regime-warn'+(r.regime==='RISK_OFF'?' show':'');
 }
 
@@ -1251,6 +1407,10 @@ function render(){
     const lm=s.livePctMove||0,lmStr=lm!==0?`${lm>=0?'+':''}${lm.toFixed(2)}%`:'';
     const bybitBadge=s.bybitData?.crossConfirmed?`<span class="bybit-badge">BY✓</span>`:'';
     const pumpBadge=s.pumpDetected?`<span style="font-size:.38rem;color:#FF6B9D;border:1px solid rgba(255,107,157,.3);padding:1px 3px;background:rgba(255,107,157,.08)">🚀${s.leaderPump24h>=0?'+':''}${s.leaderPump24h??0}%</span>`:'';
+    // RSI badge
+    const rsiBadge=`<span style="font-size:.38rem;padding:1px 4px;border:1px solid;border-radius:2px;white-space:nowrap;${(s.rsi14||50)>=70?'color:#FF5E3A;border-color:rgba(255,94,58,.4);background:rgba(255,94,58,.06)':(s.rsi14||50)<=35?'color:var(--acc);border-color:rgba(0,255,178,.35);background:rgba(0,255,178,.06)':'color:var(--muted);border-color:var(--border)'}">RSI${s.rsi14||50}</span>`;
+    // Whale candle badge
+    const whaleBadge=s.isWhalCandle?`<span style="font-size:.38rem;padding:1px 4px;color:#CF8FFF;border:1px solid rgba(207,143,255,.4);background:rgba(207,143,255,.08)">🐋 WHALE</span>`:'';
     // FIX #5: OI badge
     const oiDivg=s.oiData?.divergence;
     const oiBadge=oiDivg?`<span style="font-size:.38rem;padding:1px 4px;border:1px solid;border-radius:2px;white-space:nowrap;${oiDivg==='FAKE_BREAKOUT'?'color:#FF5E3A;border-color:rgba(255,94,58,.4);background:rgba(255,94,58,.08)':oiDivg==='ACCUMULATION'||oiDivg==='BULLISH_CONFIRM'?'color:var(--acc);border-color:rgba(0,255,178,.3);background:rgba(0,255,178,.06)':'color:var(--muted);border-color:var(--border)'}">OI:${oiDivg==='FAKE_BREAKOUT'?'⚠FAKE':oiDivg==='ACCUMULATION'?'ACCUM':oiDivg==='BULLISH_CONFIRM'?'✅REAL':oiDivg==='BEARISH_CONFIRM'?'BEAR':oiDivg==='CAPITULATION'?'CAPIT':'~'}</span>`:'' ;
@@ -1268,7 +1428,7 @@ function render(){
         <div class="sym">${s.symbol.replace('USDT','')}${!s.tfAligned?'<span style="font-size:.4rem;color:var(--dn)">⚠TF</span>':''}${s.isolated?'<span style="font-size:.4rem;color:var(--warn)">⚠ISO</span>':''}</div>
         <div class="sym-sub">${s.narLabel||''} · ${s.sector} ${lmStr?`<span class="live-move ${lm>=0?'up':'dn'}">${lmStr}</span>`:''}</div>
       </div></div>
-      <div class="td"><span class="type-badge ${s.confirmed?'multi':s.type}">${typeLabel}</span>${bybitBadge}${pumpBadge}${oiBadge}${cooldownBadge}</div>
+      <div class="td"><span class="type-badge ${s.confirmed?'multi':s.type}">${typeLabel}</span>${bybitBadge}${pumpBadge}${oiBadge}${cooldownBadge}${rsiBadge}${whaleBadge}</div>
       <div class="td">${confBadge}</div>
       <div class="td"><div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span class="chg ${own.cls}">${own.str}</span><span style="font-size:.48rem;font-weight:700;color:${rsC}">RS ${s.rs1h>=0?'+':''}${s.rs1h??0}%</span></div></div>
       <div class="td"><div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span style="font-size:.6rem;color:#fff;font-weight:700">${s.leader.replace('USDT','')}</span><span style="font-size:.46rem;color:var(--up)">+${s.leaderGain.toFixed(1)}% lag ${s.lag.toFixed(1)}%</span>${s.leaderMove4h!=null?`<span style="font-size:.4rem;color:var(--muted)">4h:${s.leaderMove4h>=0?'+':''}${s.leaderMove4h}%</span>`:''}</div></div>
@@ -1433,6 +1593,7 @@ function openDrawer(idx){
     {l:'4H TREND',v:sb.trend||0,d:`4h: ${s.ownChange4h>=0?'+':''}${s.ownChange4h?.toFixed(1)||0}%`,c:'#66D9E8'},
     {l:'ENTRY TIMING',v:sb.timing||0,d:ed.timing||'—',c:'#FFA94D'},
     {l:'OI DIVERGENCE',v:sb.oiDivergence||0,d:s.oiData?.oiLabel||'No futures data',c:s.oiFakeBreakout?'var(--dn)':s.oiData?.divergence==='BULLISH_CONFIRM'?'var(--acc)':'var(--acc2)'},
+    {l:'RSI(14)',v:sb.rsi||0,d:`${s.rsi14||50} — ${s.rsiLabel||'—'}${s.rsiOverbought?' ⚠ LATE':''}`,c:s.rsiOverbought?'var(--dn)':(s.rsi14||50)<=35?'var(--acc)':'var(--acc2)'},
   ];
   const fBars=factors.map(f=>`<div class="fbar"><div class="fbar-head"><span style="color:var(--muted);letter-spacing:.1em">${f.l}</span><span style="color:${f.c};font-weight:700">${f.v}%</span></div><div class="fbar-track"><div class="fbar-fill" style="width:${f.v}%;background:${f.c}"></div></div><div class="fbar-desc">${f.d}</div></div>`).join('');
   const vpS=s.vp?`<div class="ds"><div class="dst">📊 VP LEVELS (PROXY)</div><div class="dr"><span class="dl">VAH</span><span class="dv dn">$${fp(s.vp.vah)}</span></div><div class="dr"><span class="dl">POC</span><span class="dv" style="color:var(--corr)">$${fp(s.vp.poc)}</span></div><div class="dr"><span class="dl">VAL</span><span class="dv up">$${fp(s.vp.val)}</span></div><div class="dr"><span class="dl">POSITION</span><span class="dv" style="color:var(--acc2)">${s.vpLabel||'—'}</span></div></div>`:'';
@@ -1446,6 +1607,8 @@ function openDrawer(idx){
       ${s.confirmed?`<div style="font-size:.52rem;color:var(--acc);background:rgba(0,255,178,.06);border:1px solid rgba(0,255,178,.2);padding:6px 9px">⚡ ${s.confirmedTypes?.length} independent algorithms agree</div>`:`<div class="dnarr">${s.narrative}</div>`}
       ${s.isolated?`<div style="font-size:.5rem;color:var(--warn);background:rgba(255,184,0,.08);border:1px solid rgba(255,184,0,.2);padding:5px 9px;margin-top:4px">⚠ ISOLATED PUMP — leader moved alone, reduced confidence</div>`:''}
       ${!s.tfAligned?`<div style="font-size:.5rem;color:var(--dn);background:rgba(255,94,58,.08);border:1px solid rgba(255,94,58,.2);padding:5px 9px;margin-top:4px">⚠ TF CONFLICT — 1H and 4H disagree, score capped at 55</div>`:''}
+      ${s.isWhalCandle?`<div style="font-size:.5rem;color:#CF8FFF;background:rgba(207,143,255,.08);border:1px solid rgba(207,143,255,.25);padding:5px 9px;margin-top:4px">🐋 WHALE CANDLE — last 1H body is in the top 5% of the past 72H, real size behind this move</div>`:''}
+      ${s.rsiOverbought?`<div style="font-size:.5rem;color:var(--dn);background:rgba(255,94,58,.08);border:1px solid rgba(255,94,58,.2);padding:5px 9px;margin-top:4px">⚠ RSI ${s.rsi14} OVERBOUGHT — score penalised 25%, you may be chasing a move that's already extended</div>`:''}
       ${lm!==0?`<div style="font-size:.52rem;padding:5px 9px;margin-top:4px;background:${lm>0?'rgba(0,255,178,.06)':'rgba(255,94,58,.06)'};border:1px solid ${lm>0?'rgba(0,255,178,.2)':'rgba(255,94,58,.2)'}">📡 LIVE MOVE: <b style="color:${lm>0?'var(--acc)':'var(--dn)'}">${lm>=0?'+':''}${lm.toFixed(2)}%</b></div>`:''}
     </div>
     <div class="entry-box ${entC}"><div class="entry-label" style="color:${entC==='confirmed'?'var(--acc)':entC==='wait'?'var(--warn)':'var(--dn)'}">⏱ ENTRY: ${ed.timing||'—'}</div></div>
