@@ -251,6 +251,15 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
 .empty-txt{font-size:.58rem;color:var(--muted);letter-spacing:.09em;text-align:center;line-height:1.8;}
 .skel{height:10px;border-radius:2px;background:linear-gradient(90deg,var(--s1) 25%,var(--s2) 50%,var(--s1) 75%);background-size:200% 100%;animation:shim 1.4s infinite;}
 @keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+/* ── Watchlist styles ───────────────────────────────────────────── */
+.wl-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:.48rem;padding:2px 6px;cursor:pointer;border-radius:2px;transition:all .15s;white-space:nowrap;}
+.wl-btn.pinned{border-color:var(--warn);color:var(--warn);background:rgba(255,184,0,.08);}
+.wl-panel{background:var(--s1);border:1px solid var(--border);margin-bottom:12px;}
+.wl-row{display:flex;align-items:center;gap:8px;padding:5px 14px;border-bottom:1px solid rgba(19,36,53,.6);font-size:.56rem;}
+.wl-sym{font-family:'Syne',sans-serif;font-weight:700;font-size:.72rem;color:#fff;min-width:55px;}
+.tv-link{font-size:.46rem;padding:2px 6px;border:1px solid rgba(0,191,255,.25);color:var(--acc2);background:rgba(0,191,255,.05);text-decoration:none;white-space:nowrap;transition:all .15s;}
+.tv-link:hover{background:rgba(0,191,255,.12);border-color:var(--acc2);}
+.fr-signal-bar{display:flex;align-items:center;gap:8px;padding:6px 14px;margin-bottom:10px;border:1px solid rgba(255,94,58,.3);background:rgba(255,94,58,.05);font-size:.5rem;color:var(--dn);}
 @media(max-width:1200px){.sig-head,.sig-row{grid-template-columns:24px 1fr 106px 86px 128px 68px 58px;}.th:nth-child(7),.td:nth-child(7){display:none;}}
 @media(max-width:900px){.sig-head,.sig-row{grid-template-columns:20px 1fr 100px 128px 58px;}.th:nth-child(n+3):not(:nth-child(5)):not(:nth-child(8)),.td:nth-child(n+3):not(:nth-child(5)):not(:nth-child(8)){display:none;}.drawer{width:100%;right:-100%;}.stats{grid-template-columns:repeat(3,1fr);}.rdiv{display:none;}.regime-desc{display:none;}}
 </style>
@@ -307,6 +316,20 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
   <div class="stat" style="--c:var(--vol)"><div class="stat-lbl">VOL FLOW</div><div class="stat-val" id="stVol">—</div></div>
   <div class="stat" style="--c:var(--warn)"><div class="stat-lbl">TOTAL SIGS</div><div class="stat-val" id="stTotal">—</div></div>
   <div class="stat" style="--c:var(--up)"><div class="stat-lbl">TOP SCORE</div><div class="stat-val" id="stTopScore">—</div><div class="stat-sub" id="stTopCoin">—</div></div>
+</div>
+<div class="fr-signal-bar" id="frSignalBar" style="display:none">
+  <span style="font-family:'Syne',sans-serif;font-weight:900;font-size:.66rem;letter-spacing:.14em;color:var(--dn);white-space:nowrap">⚠ FUNDING EXTREME</span>
+  <span id="frSignalTxt" style="flex:1">—</span>
+  <span style="color:var(--muted2);font-size:.44rem">Score penalty active on all signals</span>
+</div>
+<div class="wl-panel" id="watchlistPanel" style="display:none">
+  <div class="panel-hdr">
+    <div class="panel-title">📌 WATCHLIST — <span id="wlCount">0</span> pinned</div>
+    <div style="display:flex;gap:5px">
+      <button class="hdr-btn" style="font-size:.46rem;padding:3px 8px" onclick="clearWatchlist()">✕ CLEAR ALL</button>
+    </div>
+  </div>
+  <div id="watchlistRows" style="display:flex;flex-wrap:wrap;gap:0;padding:4px 6px;min-height:36px"></div>
 </div>
 <div class="panel" id="top3Panel">
   <div class="panel-hdr">
@@ -405,6 +428,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
     <div class="drawer-title" id="drawerTitle">—</div>
     <div style="display:flex;gap:5px;align-items:center">
       <div class="dnav"><button class="dnav-btn" onclick="navigateDrawer(-1)">‹</button><button class="dnav-btn" onclick="navigateDrawer(1)">›</button></div>
+      <button class="wl-btn" id="drawerWlBtn" onclick="toggleWatchlist()">📌 PIN</button>
+      <a class="tv-link" id="drawerTVLink" href="#" target="_blank" rel="noopener">📈 TV</a>
       <button class="dclose" onclick="closeDrawer()">✕</button>
     </div>
   </div>
@@ -617,6 +642,42 @@ let allSignals=[],allMetrics={},allSectors={},graveyard=[],filteredSigs=[];
 let selectedIdx=-1,soundEnabled=false,scanInProgress=false,prevTopScore=-1;
 let sessionInterval=null,pricePollTimer=null,hitTracker=[];
 let alertLog=[]; // NEW: session alert history log
+
+// ── Watchlist (localStorage persistent) ──────────────────────────────
+let watchlist=new Set(JSON.parse(localStorage.getItem('rot8ion_watchlist')||'[]'));
+function saveWatchlist(){try{localStorage.setItem('rot8ion_watchlist',JSON.stringify([...watchlist]));}catch{}}
+function toggleWatchlist(){
+  const s=filteredSigs[selectedIdx];if(!s)return;
+  const sym=s.symbol;
+  if(watchlist.has(sym))watchlist.delete(sym);else watchlist.add(sym);
+  saveWatchlist();renderWatchlist();
+  const btn=document.getElementById('drawerWlBtn');
+  if(btn){btn.textContent=watchlist.has(sym)?'📌 PINNED':'📌 PIN';btn.className='wl-btn'+(watchlist.has(sym)?' pinned':'');}
+}
+function clearWatchlist(){watchlist.clear();saveWatchlist();renderWatchlist();}
+function renderWatchlist(){
+  const panel=document.getElementById('watchlistPanel');
+  const rows=document.getElementById('watchlistRows');
+  const ct=document.getElementById('wlCount');
+  if(!panel||!rows||!ct)return;
+  ct.textContent=watchlist.size;
+  if(!watchlist.size){panel.style.display='none';return;}
+  panel.style.display='block';
+  rows.innerHTML=[...watchlist].map(sym=>{
+    const sig=allSignals.find(s=>s.symbol===sym);
+    const m=allMetrics[sym];
+    const chg=m?fpc(m.change1h):{str:'—',cls:'neu'};
+    const score=sig?sig.score:null;
+    const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${sym.replace('USDT','USDT')}`;
+    return `<div class="wl-row">
+      <span class="wl-sym">${sym.replace('USDT','')}</span>
+      <span class="chg ${chg.cls}" style="font-size:.58rem">${chg.str}</span>
+      ${score!=null?`<span style="font-size:.5rem;color:${score>=78?'var(--acc)':score>=55?'var(--acc2)':'var(--muted)'}">${score}%</span>`:'<span style="font-size:.46rem;color:var(--muted2)">not in scan</span>'}
+      <a class="tv-link" href="${tvUrl}" target="_blank" rel="noopener">📈 TV</a>
+      <button class="wl-btn" style="margin-left:auto" onclick="watchlist.delete('${sym}');saveWatchlist();renderWatchlist()">✕</button>
+    </div>`;
+  }).join('');
+}
 // FIX #6: pump cooldown store — {leaderSym: timestampOfFirstPump}
 let pumpCooldownStore = {};
 // OUT-OF-BOX #1: narrative momentum — last 3 scan signal counts per sector
@@ -911,13 +972,19 @@ function scoreCandidate(sym,leader,m,ml,regime,isolated,oiData,signalGeneratedAt
   let finalScore=composite*(regime?.altMultiplier||1.0);
   if(isolated)finalScore*=0.65;
   if(!tfAligned)finalScore=Math.min(finalScore,55);
-  if(oiFakeBreakout)finalScore*=0.5; // FIX #5: halve score on OI fake-out signal
-  if(rsiOverbought)finalScore*=0.75; // RSI gate: overbought laggard = likely chasing
+  if(oiFakeBreakout)finalScore*=0.5;
+  if(rsiOverbought)finalScore*=0.75;
+  // Funding extreme penalty — crowded market = extra snap risk
+  if(fundingExtremeActive)finalScore*=0.80;
+  // Leader RSI check — if leader already >82 RSI, rotation catch-up is late
+  const leaderRSI=getLeaderRSI(leader);
+  const leaderRSIExhausted=leaderRSI!=null&&leaderRSI>82;
+  if(leaderRSIExhausted)finalScore*=0.75;
   // OUT-OF-BOX #3: apply time-decay to existing signals (new signals get full score)
   const decayMult=signalGeneratedAt?lagDecayMultiplier(signalGeneratedAt):1.0;
   const decayInfo=lagDecayLabel(signalGeneratedAt||Date.now());
   finalScore=finalScore*decayMult;
-  return{score:Math.min(100,Math.max(0,Math.round(finalScore))),scoreBreakdown:{narrative:Math.round(narScore),capTier:Math.round(capScore),lagQuality:Math.round(lagQuality),momentum:Math.round(momScore),vpLevel:Math.round(vpScore),tfAlign:Math.round(tfScore),structure:Math.round(structScore),volDry:Math.round(volScore),relStrength:Math.round(rsScore),volQuality:Math.round(vqScore),trend:Math.round(trendScore),timing:Math.round(timingScore),oiDivergence:Math.round(oiScore),rsi:Math.round(rsiScore)},vpLabel:m.vp?vpLevelLabel(m.price,m.vp):'—',vp:m.vp,narCount,capTierVal:capTier(sym),rs1h,rs4h,tfAligned,oiData,oiFakeBreakout,rsi14:m.rsi14||50,rsiLabel:m.rsiLabel||'—',rsiOverbought,isWhalCandle:m.isWhalCandle||false,decayInfo};
+  return{score:Math.min(100,Math.max(0,Math.round(finalScore))),scoreBreakdown:{narrative:Math.round(narScore),capTier:Math.round(capScore),lagQuality:Math.round(lagQuality),momentum:Math.round(momScore),vpLevel:Math.round(vpScore),tfAlign:Math.round(tfScore),structure:Math.round(structScore),volDry:Math.round(volScore),relStrength:Math.round(rsScore),volQuality:Math.round(vqScore),trend:Math.round(trendScore),timing:Math.round(timingScore),oiDivergence:Math.round(oiScore),rsi:Math.round(rsiScore)},vpLabel:m.vp?vpLevelLabel(m.price,m.vp):'—',vp:m.vp,narCount,capTierVal:capTier(sym),rs1h,rs4h,tfAligned,oiData,oiFakeBreakout,rsi14:m.rsi14||50,rsiLabel:m.rsiLabel||'—',rsiOverbought,isWhalCandle:m.isWhalCandle||false,leaderRSI:leaderRSI||null,leaderRSIExhausted:leaderRSIExhausted||false,decayInfo};
 }
 
 // ── Signal builder ──────────────────────────────────────────────────────
@@ -934,7 +1001,7 @@ function buildSignal(baseType,sym,leader,sector,metrics,regime,isolated,existing
   const oiData=oiCache[sym]||null;
   const genAt=existingGeneratedAt||Date.now();
   const scored=scoreCandidate(sym,leader,m,ml,regime,isolated,oiData,genAt);
-  const{score,scoreBreakdown,vpLabel,vp,narCount,capTierVal,rs1h,rs4h,tfAligned,oiFakeBreakout,rsi14,rsiLabel,rsiOverbought,isWhalCandle,decayInfo}=scored;
+  const{score,scoreBreakdown,vpLabel,vp,narCount,capTierVal,rs1h,rs4h,tfAligned,oiFakeBreakout,rsi14,rsiLabel,rsiOverbought,isWhalCandle,leaderRSI,leaderRSIExhausted,decayInfo}=scored;
   const bo=m.breakout||{stage:'IN_RANGE'};
   const catchUpPct=parseFloat(lag.toFixed(2));
   const riskPct=bo.invalidation?((m.price-bo.invalidation)/m.price*100):Math.abs(m.change4h)||2;
@@ -942,7 +1009,7 @@ function buildSignal(baseType,sym,leader,sector,metrics,regime,isolated,existing
   const narLabel=narCount>=2?'🔥 SAME ECOSYSTEM':narCount===1?'✓ RELATED':'○ BROAD SECTOR';
   const leaderMove4h=parseFloat(ml.change4h.toFixed(2));
   const leaderMove24h=parseFloat(ml.change24h.toFixed(2));
-  return{type:baseType,symbol:sym,sector,leader,leaderGain:parseFloat(ml.change1h.toFixed(2)),leaderMove4h,leaderMove24h,ownChange1h:parseFloat(m.change1h.toFixed(2)),ownChange4h:parseFloat(m.change4h.toFixed(2)),change24h:parseFloat(m.change24h.toFixed(2)),lag:catchUpPct,price:m.price,volRatio:parseFloat((m.hnVolRatio||m.volRatio||1).toFixed(2)),hnNormalized:m.hnNormalized||false,quoteVol24h:Math.round(m.quoteVol24h||0),score,scoreBreakdown,vpLabel,vp,narLabel,narCount,capTierVal,rs1h,rs4h,tfAligned,oiData,oiFakeBreakout:oiFakeBreakout||false,rsi14:rsi14||50,rsiLabel:rsiLabel||'—',rsiOverbought:rsiOverbought||false,isWhalCandle:isWhalCandle||false,decayInfo,breakout:bo,catchUpPct,rr,volQuality:m.volQuality,structData:m.structData,entryData:m.entryData,isolated,generatedAt:genAt,currentPrice:m.price,livePctMove:0,narrative:`${leader.replace('USDT','')} +${ml.change1h.toFixed(1)}% [4h:${leaderMove4h>=0?'+':''}${leaderMove4h}%] · ${sym.replace('USDT','')} lags ${lag.toFixed(1)}% · ${narLabel} · ${bo.stage} · VP:${vpLabel} · RSI:${rsi14}${tfAligned?'':' · ⚠TF CONFLICT'}${isolated?' · ⚠ISOLATED':''}${oiFakeBreakout?' · ⚠OI FAKE-OUT':''}${isWhalCandle?' · 🐋 WHALE CANDLE':''}${rsiOverbought?' · ⚠RSI OVERBOUGHT':''}`};
+  return{type:baseType,symbol:sym,sector,leader,leaderGain:parseFloat(ml.change1h.toFixed(2)),leaderMove4h,leaderMove24h,ownChange1h:parseFloat(m.change1h.toFixed(2)),ownChange4h:parseFloat(m.change4h.toFixed(2)),change24h:parseFloat(m.change24h.toFixed(2)),lag:catchUpPct,price:m.price,volRatio:parseFloat((m.hnVolRatio||m.volRatio||1).toFixed(2)),hnNormalized:m.hnNormalized||false,quoteVol24h:Math.round(m.quoteVol24h||0),score,scoreBreakdown,vpLabel,vp,narLabel,narCount,capTierVal,rs1h,rs4h,tfAligned,oiData,oiFakeBreakout:oiFakeBreakout||false,rsi14:rsi14||50,rsiLabel:rsiLabel||"—",rsiOverbought:rsiOverbought||false,isWhalCandle:isWhalCandle||false,leaderRSI:leaderRSI||null,leaderRSIExhausted:leaderRSIExhausted||false,decayInfo,breakout:bo,catchUpPct,rr,volQuality:m.volQuality,structData:m.structData,entryData:m.entryData,isolated,generatedAt:genAt,currentPrice:m.price,livePctMove:0,tvUrl:"https://www.tradingview.com/chart/?symbol=BINANCE:"+sym,narrative:leader.replace("USDT","")+" +"+ml.change1h.toFixed(1)+"% [4h:"+(leaderMove4h>=0?"+":"")+leaderMove4h+"%] · "+sym.replace("USDT","")+" lags "+lag.toFixed(1)+"% · "+narLabel+" · "+bo.stage+" · VP:"+vpLabel+" · RSI:"+rsi14+(tfAligned?"":(" · 26a0TF CONFLICT"))+(isolated?" · 26a0ISOLATED":"")+(oiFakeBreakout?" · 26a0OI FAKE-OUT":"")+(isWhalCandle?" · D83dDc33 WHALE CANDLE":"")+(rsiOverbought?" · 26a0RSI OVERBOUGHT":"")+(leaderRSIExhausted?" · 26a0LEADER RSI EXHAUSTED":"")+(fundingExtremeActive?" · 26a0FR EXTREME":"")};
 }
 
 // ── Detectors ──────────────────────────────────────────────────────────
@@ -1154,6 +1221,8 @@ async function triggerScan(){
     pfg.style.width='10%';ptxt.textContent='COMPUTING REGIME…';
     const regime=await computeRegime(metrics);
     renderRegime(regime);
+    // ── FUNDING RATE EXTREME SIGNAL ──────────────────────────────────
+    renderFundingExtremeBar(regime);
 
     const otherSyms=ALL_SYMBOLS.filter(s=>s!=='BTCUSDT'&&s!=='ETHUSDT');
     const BATCH=14;let done=0;
@@ -1200,7 +1269,7 @@ async function triggerScan(){
     document.getElementById('stCoins').textContent=Object.keys(metrics).length;
     document.getElementById('scanTime').textContent='LAST SCAN: '+new Date().toLocaleTimeString('en-GB');
 
-    renderTop3(top3);render();renderSectorGrid(sectorSummary);renderHitStats();renderNarrativeMomentum(narrativeMomentum);
+    renderTop3(top3);render();renderSectorGrid(sectorSummary);renderHitStats();renderNarrativeMomentum(narrativeMomentum);renderWatchlist();
     if(top3.length>0)playAlert('top3');
     showToast(`✓ ${deduped.length} signals · ${top3.length} top picks`);
     pfg.style.width='100%';
@@ -1274,6 +1343,44 @@ function renderAlertLog(){
   </div>`).join('');
 }
 function clearAlertLog(){alertLog=[];renderAlertLog();showToast('Alert log cleared');}
+
+// ── Funding Rate Extreme Signal Bar ───────────────────────────────────
+// When BTC or ETH funding is extreme (>0.08% or <-0.08%), show a persistent
+// warning and apply an extra multiplier penalty to all alt scores.
+// Rationale: extreme positive funding = crowded longs = snap risk; extreme
+// negative = potential short squeeze but also systemic deleveraging risk.
+let fundingExtremeActive=false,fundingExtremeDir='';
+function renderFundingExtremeBar(regime){
+  const bar=document.getElementById('frSignalBar');
+  const txt=document.getElementById('frSignalTxt');
+  if(!bar||!txt)return;
+  const btcFr=regime?.btcFundingRate??null;
+  const ethFr=regime?.ethFundingRate??null;
+  const btcExtreme=btcFr!=null&&Math.abs(btcFr)>0.08;
+  const ethExtreme=ethFr!=null&&Math.abs(ethFr)>0.08;
+  if(btcExtreme||ethExtreme){
+    bar.style.display='flex';
+    const parts=[];
+    if(btcExtreme)parts.push(`BTC ${btcFr>0?'+':''}${btcFr.toFixed(3)}% ${btcFr>0?'CROWDED LONGS ⚠':'CROWDED SHORTS ⚠'}`);
+    if(ethExtreme)parts.push(`ETH ${ethFr>0?'+':''}${ethFr.toFixed(3)}% ${ethFr>0?'CROWDED LONGS ⚠':'CROWDED SHORTS ⚠'}`);
+    txt.textContent=parts.join(' · ')+' — Alt signals penalised an additional 20%';
+    fundingExtremeActive=true;
+    fundingExtremeDir=btcFr>0||ethFr>0?'LONG':'SHORT';
+  }else{
+    bar.style.display='none';
+    fundingExtremeActive=false;
+    fundingExtremeDir='';
+  }
+}
+
+// ── Leader RSI sanity check ─────────────────────────────────────────────
+// If the leader that triggered the signal already has RSI>82, the pump may be
+// exhausted. Penalise the signal score and surface a warning in the drawer.
+function getLeaderRSI(leaderSym){
+  const m=allMetrics[leaderSym];
+  if(!m)return null;
+  return m.rsi14||null;
+}
 
 // ── Regime render ───────────────────────────────────────────────────────
 function renderRegime(r){
@@ -1565,6 +1672,12 @@ function navigateDrawer(dir){if(!filteredSigs.length)return;selectedIdx=Math.max
 function openDrawer(idx){
   const s=filteredSigs[idx];if(!s)return;
   document.getElementById('drawerTitle').textContent=s.symbol.replace('USDT','')+(s.confirmed?' ⚡':'')+' — '+s.type;
+  // TradingView link
+  const tvLink=document.getElementById('drawerTVLink');
+  if(tvLink)tvLink.href=s.tvUrl||`https://www.tradingview.com/chart/?symbol=BINANCE:${s.symbol}`;
+  // Watchlist pin button
+  const wlBtn=document.getElementById('drawerWlBtn');
+  if(wlBtn){const pinned=watchlist.has(s.symbol);wlBtn.textContent=pinned?'📌 PINNED':'📌 PIN';wlBtn.className='wl-btn'+(pinned?' pinned':'');}
   const sb=s.scoreBreakdown||{},bo=s.breakout||{},ed=s.entryData||{};
   const capTV=s.capTierVal||capTier(s.symbol),capLV=capTier(s.leader);
   const age=ageLabel(s.generatedAt);
@@ -1609,6 +1722,8 @@ function openDrawer(idx){
       ${!s.tfAligned?`<div style="font-size:.5rem;color:var(--dn);background:rgba(255,94,58,.08);border:1px solid rgba(255,94,58,.2);padding:5px 9px;margin-top:4px">⚠ TF CONFLICT — 1H and 4H disagree, score capped at 55</div>`:''}
       ${s.isWhalCandle?`<div style="font-size:.5rem;color:#CF8FFF;background:rgba(207,143,255,.08);border:1px solid rgba(207,143,255,.25);padding:5px 9px;margin-top:4px">🐋 WHALE CANDLE — last 1H body is in the top 5% of the past 72H, real size behind this move</div>`:''}
       ${s.rsiOverbought?`<div style="font-size:.5rem;color:var(--dn);background:rgba(255,94,58,.08);border:1px solid rgba(255,94,58,.2);padding:5px 9px;margin-top:4px">⚠ RSI ${s.rsi14} OVERBOUGHT — score penalised 25%, you may be chasing a move that's already extended</div>`:''}
+      ${s.leaderRSIExhausted?`<div style="font-size:.5rem;color:var(--warn);background:rgba(255,184,0,.08);border:1px solid rgba(255,184,0,.2);padding:5px 9px;margin-top:4px">⚠ LEADER RSI ${s.leaderRSI} EXHAUSTED — ${s.leader.replace('USDT','')} is overbought, rotation window may already be closing. Score penalised 25%.</div>`:''}
+      ${fundingExtremeActive?`<div style="font-size:.5rem;color:var(--dn);background:rgba(255,94,58,.08);border:1px solid rgba(255,94,58,.2);padding:5px 9px;margin-top:4px">⚠ FUNDING EXTREME ACTIVE — crowded ${fundingExtremeDir} positioning detected. All alt scores penalised 20%. Size down.</div>`:''}
       ${lm!==0?`<div style="font-size:.52rem;padding:5px 9px;margin-top:4px;background:${lm>0?'rgba(0,255,178,.06)':'rgba(255,94,58,.06)'};border:1px solid ${lm>0?'rgba(0,255,178,.2)':'rgba(255,94,58,.2)'}">📡 LIVE MOVE: <b style="color:${lm>0?'var(--acc)':'var(--dn)'}">${lm>=0?'+':''}${lm.toFixed(2)}%</b></div>`:''}
     </div>
     <div class="entry-box ${entC}"><div class="entry-label" style="color:${entC==='confirmed'?'var(--acc)':entC==='wait'?'var(--warn)':'var(--dn)'}">⏱ ENTRY: ${ed.timing||'—'}</div></div>
@@ -1641,6 +1756,7 @@ function openDrawer(idx){
       <div class="dr"><span class="dl">1H GAIN</span><span class="dv up">+${s.leaderGain?.toFixed(2)}%</span></div>
       <div class="dr"><span class="dl">LAG</span><span class="dv" style="color:var(--warn)">${s.lag?.toFixed(2)}%</span></div>
       <div class="dr"><span class="dl">4H MOVE</span><span class="dv">${s.leaderMove4h>=0?'+':''}${s.leaderMove4h||0}%</span></div>
+      <div class="dr"><span class="dl">LEADER RSI(14)</span><span class="dv" style="color:${s.leaderRSIExhausted?'var(--dn)':s.leaderRSI>=60?'var(--warn)':'var(--acc)'}">${s.leaderRSI!=null?s.leaderRSI:'—'}${s.leaderRSIExhausted?' ⚠ EXHAUSTED':''}</span></div>
       <div class="dr"><span class="dl">CAP TIER</span><span class="dv">${CAP_L[capLV]||'MID'}</span></div>
     </div>
     ${peerRows?`<div class="ds"><div class="dst">🏷 SECTOR PEERS</div><div class="peer-list">${peerRows}</div></div>`:''}
